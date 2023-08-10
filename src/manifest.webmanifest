@@ -1,0 +1,16 @@
+{
+    "name": "{{displayName}}",
+    "short_name": "{{displayName}}",
+    "description": "{{description}}",
+    "scope": "./",
+    "start_url": "index.html",
+    "display": "standalone",
+    "orientation": "any",
+    "theme_color": "{{theme-primary}}",
+    "background_color": "{{theme-background}}",
+    "icons": [{
+        "src": "{{wwwroot}}/static/favicon.ico",
+        "sizes": "512x512",
+        "type": "image/ico"
+    }]
+}

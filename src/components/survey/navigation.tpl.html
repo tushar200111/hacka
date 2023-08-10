@@ -1,0 +1,165 @@
+<div id="survey-navigation">
+    <style>
+        .navigation-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 82px;
+            justify-content: center;
+            padding-top: 16px;
+            padding-bottom: 8px;
+            background-color: var(--theme-background, #FCFCFC);
+        }
+
+        .navigation-header button {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            display: block;
+        }
+
+        .navigation-header button#prev {
+            margin-right: 8%;
+        }
+
+        .navigation-header button#next {
+            margin-left: 8%;
+        }
+
+        .navigation-header button.nav img {
+            display: block;
+            height: calc(100% - 1.5em);
+        }
+
+        .navigation-header button.nav b {
+            display: block;
+            text-transform: uppercase;
+        }
+
+        .navigation-header button.logo img {
+            height: 100%;
+            padding-bottom: 4px;
+        }
+
+        .navigation-header button,
+        .navigation-header button img {
+            width: auto;
+            background: none;
+            border: none;
+        }
+    </style>
+    <div class="navigation-header flex three">
+        <button id="prev" class="nav">
+            <img class="centered" src="{{wwwroot}}/static/circled-chevron-left.png" />
+            <b>BACK</b>
+        </button>
+        <button id="home" class="logo">
+            <img src="{{wwwroot}}/static/logo.png" />
+        </button>
+        <button id="next" class="nav">
+            <img class="centered" src="{{wwwroot}}/static/circled-chevron-right.png" />
+            <b>NEXT</b>
+        </button>
+    </div>
+
+    <script async>
+        (function () {
+            const rootElement = document.currentScript.parentElement;
+
+            // Execute all of our code in an async block to allow for top-level await calls and to limit
+            // the scope of any variables that are created here.
+            (async function () {
+
+                // Get all the form data into a dictionary.
+                const data = DataHelper.getFormData(document);
+
+                // Pre-fill the form data with previously seen values (from localStorage).
+                Object.keys(data).filter(key => !!key).forEach(key => {
+                    const elem = document.querySelector('#' + key);
+                    const value = window.localStorage.getItem(key);
+                    if (value) data[key] = value;
+                    elem.value = data[key];
+                    console.debug(`Setting ${key} to ${data[key]}`);
+                })
+
+                // If we were given a survey root element, mount a VueJS instance on that
+                // This needs to be done prior to caching any HTML elements since VueJS replaces them
+                let app = null;
+                if ('{{survey-root}}' !== '{{' + 'survey-root' + '}}') {
+                    const elem = document.querySelector('#{{survey-root}}');
+                    app = new Vue({
+                        el: '#' + elem.id,
+                        data: Object.assign({}, data, { Formatter: Formatter }),
+                    });
+                }
+
+                let screenIdx = 0;
+                const screens = [].slice.call(document.querySelectorAll('div.survey-screen'));
+
+                rootElement.querySelector('#next').addEventListener('click', event => {
+                    if (screenIdx + 1 < screens.length) {
+
+                        // Every time the next button is clicked, move on to the next question.
+                        const currScreen = screens[screenIdx];
+                        const nextScreen = screens[screenIdx + 1];
+
+                        // Display the next survey screen using a transition animation.
+                        currScreen.classList.remove('survey-screen-visible');
+                        nextScreen.classList.add('survey-screen-visible');
+
+                        // Make sure we don't stay focused on the button
+                        document.querySelector(':focus')?.blur()
+
+                        // Scroll to the top of the screen
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                        // Fire event and increase screen index
+                        screenIdx++;
+                    } else {
+
+                        // Once we reach the end of the survey, send the user to the next screen and
+                        // pass all the form elements as query parameters.
+                        const formData = DataHelper.getFormData(document);
+                        const nextUrl = new URL('{{next-url}}', window.location.href);
+                        Object.keys(formData).forEach(key => {
+                            const value = formData[key];
+                            // Add all form elements to the parameter set.
+                            nextUrl.searchParams.set(key, value);
+                            // Add all form elements to the local storage.
+                            window.localStorage.setItem(key, value);
+                        });
+                        window.location = nextUrl;
+                    }
+                });
+
+                rootElement.querySelector('#prev').addEventListener('click', event => {
+                    if (screenIdx > 0) {
+
+                        // Every time the prev button is clicked, move on to the previous question.
+                        const currScreen = screens[screenIdx];
+                        const prevScreen = screens[screenIdx - 1];
+
+                        // Display the next survey screen using a transition animation.
+                        currScreen.classList.remove('survey-screen-visible');
+                        prevScreen.classList.add('survey-screen-visible');
+
+                        // Make sure we don't stay focused on the button
+                        document.querySelector(':focus')?.blur()
+
+                        // Scroll to the top of the screen
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                        // Fire event and decrease screen index
+                        screenIdx--;
+                    }
+                });
+
+                rootElement.querySelector('#home').addEventListener('click', event => window.open('https://finmango.org', '_blank'));
+
+                // Animate and display of the first element of the survey.
+                screens[0].classList.add('survey-screen-visible');
+            })();
+        })();
+    </script>
+</div>

@@ -1,0 +1,21 @@
+<h2 class="survey-header">
+    What is your income?
+</h2>
+
+<div class="survey-block centered">
+    <label for="income_net">
+        Annual Post-Tax Income
+        <small>Total household income <span style="text-decoration: underline;">after</span> taxes.</small>
+    </label>
+    <input id="income_net" v-model="income_net" type="number" pattern="/d*" min="1" value="40000" />
+</div>
+
+<div class="spacer"></div>
+
+<div class="survey-block centered">
+    <label for="savings_rate">
+        Savings Rate
+        <small>Percentage of your income going into investments and to pay off debt.</small>
+    </label>
+    <input id="savings_rate" v-model="savings_rate" type="number" pattern="/d*" min="0" max="100" value="25" />
+</div>

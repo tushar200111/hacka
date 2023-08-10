@@ -1,0 +1,21 @@
+<h2 class="survey-header">
+    Do you have any investments?
+</h2>
+
+<div class="survey-block centered">
+    <label for="investments_net">
+        Total Invested Amount
+        <small>Total money invested in stock market, 401K, etc.</small>
+    </label>
+    <input id="investments_net" v-model="investments_net" type="number" pattern="/d*" min="5000" value="5000" />
+</div>
+
+<div class="spacer"></div>
+
+<div class="survey-block centered">
+    <label for="investments_rate">
+        Expected Investment Annual Return Rate
+        <small>The average stock market return for a 10-year period is 9.2% per year.</small>
+    </label>
+    <input id="investments_rate" v-model="investments_rate" type="number" pattern="/d*" min="0" max="100" value="9.2" />
+</div>

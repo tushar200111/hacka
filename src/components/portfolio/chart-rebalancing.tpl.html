@@ -1,0 +1,78 @@
+<div>
+    <!-- Import CSV parser -->
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+
+    <small class="centered">Effect of Rebalancing a 80/20 Stocks & Bonds Portfolio</small>
+    <div id="rebalance-comparison-chart" class="chart-container"></div>
+
+    <script async>
+        (async function () {
+            // Need to wait for VueJS to render components. See:
+            // https://github.com/vuejs/vue/issues/9200
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            // Load data
+            const urlBase = 'https://finmango.github.io/portfolio-simulator';
+            const D = await csv2json(`${urlBase}/daily-returns.csv`);
+
+            // Target portfolio balance and date filters
+            const maxDate = '2018-01-01';
+            const T = { SPY: .8, TLT: .2 };
+
+            // Compute returns for portfolio with no rebalancing
+            const C1 = Object.assign({ X: 1 }, T);
+            const normal = [Object.assign({}, C1)];
+            for (const row of D.filter(row => !isNaN(row.SPY) && !isNaN(row.TLT) && row.Date < maxDate)) {
+                C1.SPY = C1.SPY * (1 + row.SPY);
+                C1.TLT = C1.TLT * (1 + row.TLT);
+                C1.X = C1.SPY + C1.TLT;
+                normal.push({ 'Date': new Date(row.Date), 'X': C1.X });
+            }
+
+            // Compute returns for portfolio with yearly rebalancing
+            const C2 = Object.assign({ X: 1 }, T);
+            const rebalanced = [Object.assign({}, C2)];
+            for (const row of D.filter(row => !isNaN(row.SPY) && !isNaN(row.TLT) && row.Date < maxDate)) {
+                if (rebalanced.length > 2 && rebalanced.at(-1).Date.getFullYear() !== rebalanced.at(-2).Date.getFullYear()) {
+                    C2.SPY = C2.X * T.SPY;
+                    C2.TLT = C2.X * T.TLT;
+                }
+                C2.SPY = C2.SPY * (1 + row.SPY);
+                C2.TLT = C2.TLT * (1 + row.TLT);
+                C2.X = C2.SPY + C2.TLT;
+                rebalanced.push({ 'Date': new Date(row.Date), 'X': C2.X });
+            }
+
+            // Create DataTable
+            await google.charts.load('current', { packages: ['corechart'] });
+            const table = new google.visualization.DataTable();
+            table.addColumn({ label: 'Date', type: 'date' });
+            table.addColumn({ label: 'No Rebalancing', type: 'number' });
+            table.addColumn({ label: 'Yearly Rebalancing', type: 'number' });
+            table.addRows([...Array(Math.min(normal.length, rebalanced.length)).keys()]
+                .map((_, idx) => [normal[idx].Date, normal[idx].X, rebalanced[idx].X]));
+
+            // Wait for element to become visible
+            const chartContainer = document.querySelector('#rebalance-comparison-chart');
+            await new Promise(resolve => new IntersectionObserver(
+                entries => entries.some(x => x.isIntersecting) ? resolve() : void (0)).observe(chartContainer));
+
+            // Render chart
+            new google.visualization.LineChart(chartContainer).draw(table, {
+                ...GOOGLE_CHARTS_CONFIG,
+                // title: `Dividend Reinvestment Comparison`,
+                curveType: 'function',
+                focusTarget: 'category',
+                colors: null,
+                legend: { ...GOOGLE_CHARTS_CONFIG.legend, position: 'in' },
+                hAxis: { ...GOOGLE_CHARTS_CONFIG.hAxis, format: 'yyyy', gridlines: { count: 50 } },
+                vAxis: { ...GOOGLE_CHARTS_CONFIG.vAxis, textPosition: 'in' },
+                interpolateNulls: true,
+                chartArea: { ...GOOGLE_CHARTS_CONFIG.chartArea, left: 0 },
+            });
+
+            // Hide loading spinners
+            chartContainer.style.backgroundImage = 'none';
+        })();
+    </script>
+</div>

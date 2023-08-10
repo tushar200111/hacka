@@ -1,0 +1,19 @@
+<div>
+    <label for="start_date">
+        Start Date
+        <small>
+            Start date for the simulation period. Ignored if the selected date is out of the range of available data.
+        </small>
+    </label>
+    <input id="start_date" type="date" v-model="start_date" min="1970-01-01" value="1995-01-01" />
+</div>
+
+<div>
+    <label for="end_date">
+        End Date
+        <small>
+            End date for the simulation period. Ignored if the selected date is out of the range of available data.
+        </small>
+    </label>
+    <input id="end_date" type="date" v-model="end_date" min="1970-01-01" value="2022-01-01" />
+</div>

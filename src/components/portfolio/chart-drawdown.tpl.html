@@ -1,0 +1,57 @@
+<div>
+    <!-- Import CSV parser -->
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+
+    <small class="centered">2008 Recession Drawdown</small>
+    <div id="drawdown-recession-chart" class="chart-container"></div>
+
+    <script async>
+        (async function () {
+            // Need to wait for VueJS to render components. See:
+            // https://github.com/vuejs/vue/issues/9200
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            // Load data
+            const urlBase = 'https://finmango.github.io/portfolio-simulator';
+            const R = await csv2json(`${urlBase}/daily-returns.csv`);
+
+            // Compute drawdown
+            const C = { X: 1, H: 1, D: 0 };
+            const drawdown = [Object.assign({}, C)];
+            for (const row of R.filter(row => !isNaN(row.VTI) && row.Date > '2007-01-01' && row.Date < '2017-01-01')) {
+                C.X = C.X * (1 + row.VTI);
+                C.H = Math.max(C.H, C.X);
+                C.D = Math.min(0, (C.X - C.H) / C.H);
+                drawdown.push({ 'Date': new Date(row.Date), 'D': C.D, 'X': C.X, 'H': C.H });
+            }
+
+            // Create DataTable
+            await google.charts.load('current', { packages: ['corechart'] });
+            const table = new google.visualization.DataTable();
+            table.addColumn({ label: 'Date', type: 'date' });
+            table.addColumn({ label: 'Drawdown', type: 'number' });
+            table.addRows(drawdown.map(row => [row['Date'], row['D']]));
+
+            // Wait for element to become visible
+            const chartContainer = document.querySelector('#drawdown-recession-chart');
+            await new Promise(resolve => new IntersectionObserver(
+                entries => entries.some(x => x.isIntersecting) ? resolve() : void (0)).observe(chartContainer));
+
+            // Render chart
+            new google.visualization.AreaChart(chartContainer).draw(table, {
+                ...GOOGLE_CHARTS_CONFIG,
+                // title: `Drawdown During Recession`,
+                curveType: 'function',
+                focusTarget: 'category',
+                colors: ['red'],
+                hAxis: { ...GOOGLE_CHARTS_CONFIG.hAxis, format: 'yyyy', gridlines: { count: 50 } },
+                vAxis: { ...GOOGLE_CHARTS_CONFIG.vAxis, textPosition: 'in', viewWindow: { max: 0, min: -1 } },
+                interpolateNulls: true,
+                chartArea: { ...GOOGLE_CHARTS_CONFIG.chartArea, top: 0, left: 0 },
+            });
+
+            // Hide loading spinners
+            chartContainer.style.backgroundImage = 'none';
+        })();
+    </script>
+</div>

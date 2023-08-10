@@ -1,0 +1,283 @@
+<div>
+    <div id="fire-calculator-data">
+
+        <div>
+            <h2 class="centered" style="text-transform: uppercase;">
+                You can achieve financial independence in
+                <br />
+                <span style="font-size: xx-large;">{{fire_years}} years</span>
+            </h2>
+        </div>
+
+        <!-- Element host for the Google Chart -->
+        <div id="chart-container" class="chart-container"></div>
+
+        <div class="spacer"></div>
+
+        <details>
+            <summary style="display: list-item; font-size: large;">Adjust Calculator Options</summary>
+
+            <form class="flex one two-600">
+
+                <div>
+                    <label for="debt_net" style="margin-bottom: auto;">
+                        Loans and Liabilities
+                        <small>Total amount of money owed.</small>
+                    </label>
+                    <input v-model="debt_net" type="number" pattern="/d*" min="1" style="margin-top: auto;" />
+                </div>
+
+                <div>
+                    <label for="debt_interest_rate">
+                        Debt Interest Rate
+                        <small>Annualized percentage charged by the loan provider, accruing daily.</small>
+                    </label>
+                    <input v-model="debt_interest_rate" type="number" pattern="/d*" min="0" max="100" />
+                </div>
+
+                <div>
+                    <label for="debt_payment_minimum">
+                        Minimum Monthly Loan Payment
+                        <small>Minium monthly payment required by the loan provider.</small>
+                    </label>
+                    <input v-model="debt_payment_minimum" type="number" pattern="/d*" min="1" />
+                </div>
+
+                <div>
+                    <label for="debt_payment_strategy">
+                        Loan Payment Strategy
+                        <small>Strategy used to repay the debt. "Optimal" assumes constant investment return.</small>
+                    </label>
+                    <select id="debt_payment_strategy" v-model="debt_payment_strategy">
+                        <option value="optimal" selected>Optimal</option>
+                        <option value="debt-first">All Debt First</option>
+                        <option value="debt-last">Only Minimum Payments</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="investments_net">
+                        Current Investments
+                        <small>Total money invested in stock market, 401K, etc.</small>
+                    </label>
+                    <input v-model="investments_net" type="number" pattern="/d*" min="1" value="5000" />
+                </div>
+
+                <div>
+                    <label for="investments_rate">
+                        Expected Rate of Return
+                        <small>Yearly growth percentage for your investments.</small>
+                    </label>
+                    <input v-model="investments_rate" type="number" pattern="/d*" min="0" max="20" value="8" />
+                </div>
+
+                <div>
+                    <label for="income_net">
+                        Annual Post-Tax Income
+                        <small>Total household income <span style="text-decoration: underline;">after</span>
+                            taxes.</small>
+                    </label>
+                    <input v-model="income_net" type="number" pattern="/d*" min="1" value="60000" />
+                </div>
+
+                <div>
+                    <label for="savings_rate">
+                        Savings Rate
+                        <small>Percentage of your income going into investments and to pay off debt.</small>
+                    </label>
+                    <input v-model="savings_rate" type="number" pattern="/d*" min="0" max="100" value="25" />
+                </div>
+
+                <div>
+                    <label for="income_target">
+                        Target Retirement Income
+                        <small>Annual after-tax target income after retirement.</small>
+                    </label>
+                    <input v-model="income_target" type="number" pattern="/d*" min="1" value="50000" />
+                </div>
+
+                <div>
+                    <label for="safe_withdrawal_rate">
+                        Safe Withdrawal Rate
+                        <small>Percentage of investments that can be withdrawn without a net negative effect.</small>
+                    </label>
+                    <input v-model="safe_withdrawal_rate" type="number" pattern="/d*" min="0" max="100" value="4" />
+                </div>
+            </form>
+        </details>
+    </div>
+
+    <script async>
+        // Strings and other constants
+        const FIRE_TEXT = '🔥 TARGET REACHED 🔥';
+        const DEBT_FREE_TEXT = 'DEBT FREE';
+        const PROJECTED_YEARS = 100;
+        const INCOME_GROWTH_RATE = 0.01;
+        const ANNUAL_EXPENSES_GROWTH_RATE = 0.01;
+
+        // Reference to outer element
+        const rootElement = document.currentScript.parentElement;
+
+        // Helper function to convert to/from annual to monthly rates
+        function monthlyToAnnualRate(rate) {
+            return Math.pow(rate + 1, 12) - 1;
+        }
+
+        // Helper function to convert to/from annual to monthly rates
+        function annualToMonthlyRate(rate) {
+            return Math.pow(rate + 1, 1 / 12) - 1;
+        }
+
+        // Mount VueJS to the root element
+        const app = new Vue({
+            el: '#fire-calculator-data',
+            data: {
+                // Initialize data with sensible defaults
+                debt_net: 10_000,
+                debt_interest_rate: 6,
+                debt_payment_minimum: 500,
+                debt_payment_strategy: 'optimal',
+                investments_net: 5_000,
+                investments_rate: 8,
+                income_net: 60_000,
+                savings_rate: 25,
+                income_target: 50_000,
+                safe_withdrawal_rate: 4,
+                fire_years: null,
+            },
+            watch: {
+                loaded: function () { this.update },
+            },
+            methods: {
+                update: async function () {
+                    // Load Google Charts asynchronously on demand
+                    await google.charts.load('current', { packages: ['corechart'] });
+                    const chartElem = rootElement.querySelector('#chart-container');
+
+                    // Load all the data from the view model and perform some handy conversions
+                    const initialDebt = Number(app.debt_net);
+                    const initialIncome = Number(app.income_net);
+                    const initialInvestments = Number(app.investments_net);
+                    const savingsRate = Number(app.savings_rate) / 100;
+
+                    const incomeTarget = Number(app.income_target);
+                    const safeWithdrawalRate = Number(app.safe_withdrawal_rate) / 100;
+                    const investmentsTarget = incomeTarget / safeWithdrawalRate;
+
+                    const annualDebtGrowthRate = Number(app.debt_interest_rate) / 100;
+                    const annualInvestmentsGrowthRate = Number(app.investments_rate) / 100;
+
+                    const monthlyIncome = initialIncome / 12;
+
+                    const monthlyInvestmentsMultiplier = 1 + annualToMonthlyRate(annualInvestmentsGrowthRate);
+                    const monthlyExpensesMultiplier = 1 + annualToMonthlyRate(ANNUAL_EXPENSES_GROWTH_RATE);
+
+                    const dailyDebtMultiplier = 1 + (annualDebtGrowthRate / 365);
+                    const monthlyDebtMultiplier = Math.pow(dailyDebtMultiplier, 30);
+
+                    const debtPaymentStrategy = app.debt_payment_strategy;
+                    const debtPaymentMonthly = Number(app.debt_payment_minimum);
+
+                    // Use an iterative process to compute estimated wealth
+                    const data = [];
+                    let flags = { 'debtfree': initialDebt === 0, 'fire': false };
+                    let currentDebt = initialDebt;
+                    let currentIncome = monthlyIncome;
+                    let currentInvestments = initialInvestments;
+                    for (let i = 0; i < PROJECTED_YEARS * 12; i++) {
+                        const halfYears = (Math.round(i / 12 * 2) / 2).toFixed(1).replace('.0', '');
+                        data.push({
+                            'month': i,
+                            'year': Math.floor(i / 12),
+                            'xlabel': `${halfYears} years`,
+                            'date': `${Math.floor(i / 12)} years and ${i % 12} months`,
+                            'debt': currentDebt,
+                            'income': currentIncome,
+                            'investments': currentInvestments,
+                            'networth': currentInvestments - currentDebt,
+                        });
+
+                        if (currentDebt <= 0 && !flags['debtfree']) {
+                            flags['debtfree'] = true;
+                            data[data.length - 1]['debtfree'] = true;
+                            data[data.length - 1]['annotation'] = DEBT_FREE_TEXT;
+                        }
+
+                        if ((currentInvestments - currentDebt) > investmentsTarget && !flags['fire']) {
+                            flags['fire'] = true;
+                            data[data.length - 1]['fire'] = true;
+                            data[data.length - 1]['annotation'] = FIRE_TEXT;
+                            app.fire_years = halfYears;
+                        }
+
+                        // Investments and debt always grow independently of other choices
+                        currentDebt *= monthlyDebtMultiplier;
+                        currentInvestments *= monthlyInvestmentsMultiplier;
+
+                        // Income left to invest and pay debts
+                        const leftOverIncome = currentIncome * savingsRate;
+
+                        const isOptimalStrategy = debtPaymentStrategy === 'optimal';
+                        if (debtPaymentStrategy === 'debt-first' || (isOptimalStrategy && monthlyDebtMultiplier >= monthlyInvestmentsMultiplier)) {
+                            currentDebt -= leftOverIncome;
+                        } else if (debtPaymentStrategy === 'debt-last' || (isOptimalStrategy && monthlyDebtMultiplier < monthlyInvestmentsMultiplier)) {
+                            currentDebt -= debtPaymentMonthly;
+                            currentInvestments += (leftOverIncome - debtPaymentMonthly);
+                        } else {
+                            throw new Error('Unknown debt payment strategy');
+                        }
+
+                        if (currentDebt < 0) {
+                            currentInvestments -= currentDebt;
+                            currentDebt = 0;
+                        }
+                    }
+
+                    // Recompute when FIRE was reached
+                    const fireIndex = data.map(x => !!x['fire']).indexOf(true);
+
+                    // Used as a shorthand to compute the tooltip displayed on hover
+                    const tooltip = x =>
+                        `${x['date']}\n` +
+                        `${Formatter.price(x['networth'])} Net Worth\n` +
+                        `${Formatter.price(x['investments'])} Investments\n` +
+                        `${Formatter.price(x['debt'])} Debt`;
+
+                    const dataTable = new google.visualization.DataTable();
+                    dataTable.addColumn({ label: 'Time', type: 'string' });
+                    dataTable.addColumn({ type: 'string', role: 'annotation' });
+                    dataTable.addColumn({ label: 'Net Worth', type: 'number' });
+                    dataTable.addColumn({ type: 'string', role: 'tooltip' });
+                    dataTable.addRows(data
+                        .slice(0, fireIndex + 36)
+                        .map(x => [x['xlabel'], x['annotation'], x['networth'], tooltip(x)]));
+
+                    const chartObject = new google.visualization.AreaChart(chartElem);
+                    chartObject.draw(dataTable, Object.assign({}, GOOGLE_CHARTS_CONFIG, {
+                        title: `🔥 with FinMango`,
+                        curveType: 'function',
+                        series: [{ 'color': '#757575' }],
+                        intervals: { 'style': 'area' },
+                        interpolateNulls: true,
+                        annotations: {
+                            style: 'line'
+                        },
+                    }));
+
+                    // Hide loading spinner
+                    chartElem.style.backgroundImage = 'none';
+                }
+            }
+        });
+
+        // Load data from URL query parameters into the view model
+        const data = DataHelper.getQueryData(window.location);
+        Object.assign(app, data);
+
+        // Ask VueJS to reload anytime any of the data changes
+        Object.keys(data).forEach(key => app.$watch(key, function () { this.update() }));
+
+        // Make sure load is triggered even if we didn't pass any data
+        app.update();
+    </script>
+</div>

@@ -1,0 +1,22 @@
+<h2 class="survey-header">
+    Do you have any debts?
+</h2>
+
+<div class="survey-block centered">
+    <label for="debt_net">
+        Total Amount Owed
+        <small>The average student or car loan debt is around $30,000.</small>
+    </label>
+    <input id="debt_net" v-model="debt_net" type="number" pattern="/d*" min="0" value="0" />
+</div>
+
+<div class="spacer"></div>
+
+<div class="survey-block centered">
+    <label for="debt_interest_rate">
+        Interest Rate
+        <small>The average student and car loan interest rate is 5-6%, mortgage is approximately 4%.</small>
+    </label>
+    <input id="debt_interest_rate" v-model="debt_interest_rate" type="number" pattern="/d*" min="0" max="100"
+        value="5" />
+</div>

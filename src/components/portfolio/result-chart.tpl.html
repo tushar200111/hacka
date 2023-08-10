@@ -1,0 +1,506 @@
+<div>
+    <!-- Import CSV parser -->
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+
+    <div id="portfolio-calculator-data">
+
+        <div class="modal">
+            <input id="symbols-modal" type="checkbox">
+            <label for="symbols-modal" class="overlay"></label>
+            <article>
+                <header>
+                    <h3>Symbol Information</h3>
+                    <label for="symbols-modal" class="close">×</label>
+                </header>
+                <section class="content">
+                    <table>
+                        <tr style="display: none;">
+                            <th>Symbol</th>
+                            <th>Description</th>
+                        </tr>
+                        <tr>
+                            <td>CASH</td>
+                            <td>Cash allocation in U.S. dollars</td>
+                        </tr>
+                        <tr>
+                            <td>SPY</td>
+                            <td>
+                                <a href="https://www.ssga.com/us/en/institutional/etfs/funds/spdr-sp-500-etf-trust-spy"
+                                    target="_blank">
+                                    SPDR S&P 500 ETF Trust
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>TLT</td>
+                            <td>
+                                <a href="https://www.ishares.com/us/products/239454/TLT" target="_blank">
+                                    iShares 20+ Year Treasury Bond ETF
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>VTI</td>
+                            <td>
+                                <a href="https://investor.vanguard.com/etf/profile/VTI" target="_blank">
+                                    Vanguard Total Stock Market ETF
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>VXUS</td>
+                            <td>
+                                <a href="https://investor.vanguard.com/etf/profile/VXUS" target="_blank">
+                                    Vanguard Total International Stock ETF
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>VB</td>
+                            <td>
+                                <a href="https://investor.vanguard.com/etf/profile/VB" target="_blank">
+                                    Vanguard Small-Cap ETF
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>VBR</td>
+                            <td>
+                                <a href="https://investor.vanguard.com/etf/profile/VBR" target="_blank">
+                                    Vanguard Small-Cap Value ETF
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>BND</td>
+                            <td>
+                                <a href="https://investor.vanguard.com/etf/profile/BND" target="_blank">
+                                    Vanguard Total Bond Market ETF
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>UPRO</td>
+                            <td>
+                                <a href="https://www.proshares.com/our-etfs/leveraged-and-inverse/upro" target="_blank">
+                                    ProShares UltraPro S&P500
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>TMF</td>
+                            <td>
+                                <a href="https://www.direxion.com/product/daily-20-year-treasury-bull-bear-3x-etfs"
+                                    target="_blank">
+                                    Direxion Daily 20+ Year Treasury Bull
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </section>
+            </article>
+            <footer></footer>
+        </div>
+
+        <div>
+            <h2 v-if="error_message" class="centered" style="text-transform: uppercase;">{{error_message}}</h2>
+            <div :class="{invisible: error_message !== null}">
+                <h2 class="centered" style="text-transform: uppercase;">
+                    You earned {{ Formatter.price(initial_investment * performance.returns_minus_dca) }}
+                    in investment profits
+                </h2>
+                <p style="text-align: justify;">
+                    You started with <b class="green">{{ Formatter.price(initial_investment) }}</b> on
+                    <b>{{ performance.start_date?.toLocaleDateString() }}</b>. You invested an additional
+                    <b class="green">{{ Formatter.price(dca_amount * performance.dca_count) }}</b> after
+                    <b>{{ performance.dca_count }}</b> contribution(s) via the selected dollar-cost
+                    averaging strategy, so your total investment was
+                    <b class="green">{{ Formatter.price(total_invested) }}</b>.
+                    Your investment portfolio balance was
+                    <b :class="[performance.returns > 0 ? 'green' : 'red']">
+                        {{ Formatter.price(final_balance) }}</b> on
+                    <b>{{ performance.end_date?.toLocaleDateString() }}</b>. The
+                    portfolio was rebalanced <b>{{ performance.rebalance_count }}</b> time(s).
+                </p>
+            </div>
+        </div>
+
+        <div class="flex one two-600">
+
+            <div class="fourth" style="padding-top: 24px">
+                <label for="target_allocations">Target Allocations</label>
+                <div id="target_allocations">
+                    <div v-for="symbol in symbols">
+                        <label for="{{ symbol }}">
+                            <small>{{ allocations_percent[symbol] }}% {{ symbol }}</small>
+                        </label>
+                        <input @input="temp()" type="range" v-model.number="allocations_percent[symbol]" min="0"
+                            max="100" step="5" style="margin-top: -10px; padding: 0;">
+                    </div>
+                </div>
+                <label for="symbols-modal">ℹ️ What's this?</label>
+            </div>
+
+            <div class="three-fourth">
+                <!-- Element host for the Google Charts -->
+                <div :class="{invisible: error_message !== null}" id="perf-chart-container" class="chart-container">
+                </div>
+                <div :class="{invisible: error_message !== null}" id="drawdown-chart-container" class="chart-container">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Summary simulation statistics -->
+        <div class="flex one" style="overflow-x: auto;">
+            <table :class="{invisible: error_message !== null}" style="font-size: small;">
+                <tr>
+                    <th>Period Duration*</th>
+                    <th>Average Annualized Return</th>
+                    <th>Largest Annualized Return</th>
+                    <th>Smallest Annualized Return</th>
+                    <th>Average Max Drawdown</th>
+                    <th>Largest Max Drawdown</th>
+                    <th>Smallest Max Drawdown</th>
+                </tr>
+                <tr v-show="'1 Year' in performance">
+                    <td>1 Year</td>
+                    <td>{{ Formatter.percent(performance['1 Year']?.ret_avg, true) }}</td>
+                    <td>{{ Formatter.percent(performance['1 Year']?.ret_max, true) }}</td>
+                    <td>{{ Formatter.percent(performance['1 Year']?.ret_min, true) }}</td>
+                    <td>{{ Formatter.percent(performance['1 Year']?.drw_avg, true) }}</td>
+                    <td>{{ Formatter.percent(performance['1 Year']?.drw_max, true) }}</td>
+                    <td>{{ Formatter.percent(performance['1 Year']?.drw_min, true) }}</td>
+                </tr>
+                <tr v-show="'5 Year' in performance">
+                    <td>5 Years</td>
+                    <td>{{ Formatter.percent(performance['5 Year']?.ret_avg, true) }}</td>
+                    <td>{{ Formatter.percent(performance['5 Year']?.ret_max, true) }}</td>
+                    <td>{{ Formatter.percent(performance['5 Year']?.ret_min, true) }}</td>
+                    <td>{{ Formatter.percent(performance['5 Year']?.drw_avg, true) }}</td>
+                    <td>{{ Formatter.percent(performance['5 Year']?.drw_max, true) }}</td>
+                    <td>{{ Formatter.percent(performance['5 Year']?.drw_min, true) }}</td>
+                </tr>
+                <tr v-show="'10 Year' in performance">
+                    <td>10 Years</td>
+                    <td>{{ Formatter.percent(performance['10 Year']?.ret_avg, true) }}</td>
+                    <td>{{ Formatter.percent(performance['10 Year']?.ret_max, true) }}</td>
+                    <td>{{ Formatter.percent(performance['10 Year']?.ret_min, true) }}</td>
+                    <td>{{ Formatter.percent(performance['10 Year']?.drw_avg, true) }}</td>
+                    <td>{{ Formatter.percent(performance['10 Year']?.drw_max, true) }}</td>
+                    <td>{{ Formatter.percent(performance['10 Year']?.drw_min, true) }}</td>
+                </tr>
+                <tr>
+                    <td>Full Simulation</td>
+                    <td>{{ Formatter.percent(performance.returns_annualized, true) }}</td>
+                    <td>{{ Formatter.percent(performance.returns_annualized, true) }}</td>
+                    <td>{{ Formatter.percent(performance.returns_annualized, true) }}</td>
+                    <td>{{ Formatter.percent(performance.max_drawdown, true) }}</td>
+                    <td>{{ Formatter.percent(performance.max_drawdown, true) }}</td>
+                    <td>{{ Formatter.percent(performance.max_drawdown, true) }}</td>
+                </tr>
+            </table>
+            <small style="margin-top: 8px">
+                *The period statistics are computed using a
+                <a href="https://en.wikipedia.org/wiki/Moving_average">moving average</a>, minimum, and maximum of the
+                simulated portfolio returns. For example, "5 Years" includes data for all 5-year periods starting at the
+                first day of the simulation.
+            </small>
+        </div>
+
+        <div class="spacer"></div>
+
+        <details>
+            <summary style="display: list-item">Adjust Calculator Options</summary>
+
+            <form class="flex one two-600">
+                <script data-include src="init-form.tpl.html"></script>
+                <script data-include src="div-form.tpl.html"></script>
+                <script data-include src="form-dates.tpl.html"></script>
+                <script data-include src="dca-form.tpl.html"></script>
+                <script data-include src="rebalance-form.tpl.html"></script>
+
+            </form>
+        </details>
+
+        <div class="spacer"></div>
+    </div>
+
+    <script async>
+        function csv2json(url) {
+            return new Promise(resolve =>
+                Papa.parse(url, { download: true, complete: resolve })
+            ).then(res => res.data).then(rows => rows.slice(1).map(row =>
+                rows[0].reduce((agg, col, idx) =>
+                    Object.assign(agg, { [col]: col === 'Date' ? row[idx] : parseFloat(row[idx]) }), {})
+            ));
+        }
+
+        // Reference to outer element
+        const rootElement = document.currentScript.parentElement;
+
+        // Mount VueJS to the root element
+        const app = new Vue({
+            el: '#portfolio-calculator-data',
+            data: {
+                error_message: null,
+                symbols: ['CASH', 'SPY', 'TLT', 'VTI', 'VXUS', 'VB', 'VBR', 'BND', 'UPRO', 'TMF'],
+                target_allocations: 'SPY:100',
+                allocations_percent: {},
+                initial_investment: 1,
+                rebalance_schedule: 'yearly',
+                schedules: ['Never', 'Yearly', 'Quarterly', 'Monthly', 'Daily'],
+                dividend_reinvestment: 'yes',
+                dca_schedule: 'never',
+                dca_amount: 0,
+                start_date: '1995-01-01',
+                end_date: new Date().toISOString().slice(0, 10),
+                performance: { '1 Year': {}, '5 Year': {}, '10 Year': {} },
+                debouncer1: null,
+                debouncer2: null,
+                Formatter: Formatter,
+            },
+            computed: {
+                total_invested: function () { return Number(this.initial_investment) + this.dca_amount * this.performance.dca_count },
+                final_balance: function () { return Number(this.initial_investment) + this.initial_investment * this.performance.returns },
+                dca_ratio: function () { return this.dca_amount / this.initial_investment },
+            },
+            watch: {
+            },
+            methods: {
+                alloc: function () {
+                    const alloc = {};
+                    for (const [symbol, val] of Object.entries(this.allocations_percent)) {
+                        if (val > 0) alloc[symbol] = val / 100;
+                    }
+                    return alloc;
+                },
+                temp: function () {
+                    if (this.debouncer1) clearTimeout(this.debouncer1);
+                    this.debouncer1 = setTimeout(() => {
+                        const tmp = this.allocations_percent;
+                        this.allocations_percent = null;
+                        this.allocations_percent = tmp;
+                    }, 10);
+                },
+                meetsSchedule: function (returns, schedule) {
+                    const quarter = month => 1 + Math.floor((Number(month) - 1) / 3);
+                    const tokenizeDate = date => date.toISOString().slice(0, 10).split('-');
+                    if (schedule === 'never' || returns.length < 2)
+                        return false;
+                    if (schedule === 'yearly')
+                        return tokenizeDate(returns.at(-1).date)[0] !== tokenizeDate(returns.at(-2).date)[0];
+                    if (schedule === 'quarterly')
+                        return quarter(tokenizeDate(returns.at(-1).date)[1]) !== quarter(tokenizeDate(returns.at(-2).date)[1]);
+                    if (schedule === 'monthly')
+                        return tokenizeDate(returns.at(-1).date)[1] !== tokenizeDate(returns.at(-2).date)[1];
+                    if (schedule === 'daily')
+                        return true;
+                    if (schedule.endsWith('% threshold')) {
+                        const threshold = parseInt(schedule.split('%')[0]) / 100;
+                        const currentValues = this.alloc.map(symbol => [symbol, returns.at(-1)[symbol]]);
+                        const totalAssets = currentValues.reduce((total, [_, val]) => total + val, 0);
+                        for (const [symbol, val] of currentValues) {
+                            const ratio = val / totalAssets;
+                            const target = this.alloc[symbol];
+                            const diff = Math.abs(ratio - target) / target;
+                            if (Math.abs(ratio - target) / target > threshold) return true;
+                        }
+                        return false;
+                    }
+                    throw new Error(`Unknown rebalancing strategy: ${schedule}`);
+                },
+                update: async function (debounce = true) {
+                    if (this.debouncer2) clearTimeout(this.debouncer2);
+                    if (debounce) {
+                        this.debouncer2 = setTimeout(() => { this.update(false) }, 500);
+                        return;
+                    }
+
+                    // Clear error message
+                    this.error_message = null;
+
+                    // Early exit: allocations do not amount to 100%
+                    const alloc = this.alloc();
+                    if (Object.values(alloc).reduce((total, val) => total + Math.round(val * 100), 0) !== 100) {
+                        this.error_message = 'Total allocations must be equal to 100%';
+                        console.error('Invalid portfolio allocation:', alloc);
+                        return;
+                    }
+
+                    // Load Google Charts asynchronously on demand
+                    await google.charts.load('current', { packages: ['corechart'] });
+
+                    // Wait for the historical data to be fully loaded
+                    const symbols = Object.keys(alloc).sort((a, b) => alloc[b] - alloc[a]);
+                    const reinvest = this.dividend_reinvestment === 'yes';
+                    const history = (await (reinvest ? this.daily_returns_reinvested : this.daily_returns))
+                        .filter(row => row.Date.localeCompare(this.start_date) >= 0)
+                        .filter(row => row.Date.localeCompare(this.end_date) <= 0)
+                        .filter(row => symbols.every(symbol => !isNaN(row[symbol])));
+
+                    // Early exit: no history found for the given parameters
+                    if (!history || history.length === 0) {
+                        this.error_message = 'No data found for the selected parameters. Try selecting a different date.';
+                        return;
+                    }
+
+                    const returns = [];
+                    const rolling = [1, 5, 10].reduce((agg, n) => ({ ...agg, [n]: [] }), {});
+                    const C = Object.assign({ total: 1, total_minus_dca: 1, max: 1, dca_count: 0, dca_total: 0, rebalance_count: 0 }, alloc);
+                    for (const x of history) {
+
+                        // Compute daily returns for whole portfolio as a weighted sum of component returns
+                        const alloc_total = symbols.map(symbol => C[symbol]).reduce((total, a) => total + a, 0);
+                        C.daily_returns = symbols
+                            .map(symbol => x[symbol] * C[symbol] / alloc_total)
+                            .reduce((total, val) => total + val, 0);
+
+                        // Compute daily returns for each symbol individually
+                        symbols.forEach(symbol => C[symbol] *= (1 + x[symbol]));
+
+                        // Update simulated returns and keep track of DCA amounts and drawdown
+                        C.total = symbols.reduce((total, symbol) => total + C[symbol], 0);
+                        C.total_minus_dca = C.total - C.dca_total;
+                        C.max = Math.max(C.max, C.total);
+                        C.drawdown = Math.min(0, (C.total - C.max) / C.max);
+
+                        // Add record to list
+                        returns.push(Object.assign({ date: new Date(x.Date) }, C));
+
+                        // Keep track of rolling performance
+                        Object.keys(rolling).forEach(year => {
+                            const days = Math.ceil(year * 252.75);
+                            if (returns.length > days) {
+                                let curr = 1;
+                                let drawdown = 0;
+                                let runningMax = 0;
+                                for (const row of returns.slice(-days)) {
+                                    curr *= 1 + row.daily_returns;
+                                    runningMax = Math.max(runningMax, curr);
+                                    drawdown = Math.min(drawdown, (curr - runningMax) / runningMax);
+                                }
+
+                                rolling[year].push({ returns: curr - 1, drawdown: drawdown });
+                            }
+                        });
+
+                        // DCA if schedule requests it
+                        if (this.meetsSchedule(returns, this.dca_schedule.toLowerCase())) {
+                            C.dca_count++;
+                            C.dca_total += this.dca_ratio;
+                            Object.entries(alloc).forEach(([symbol, weight]) =>
+                                C[symbol] += this.dca_ratio / symbols.length);
+                        }
+
+                        // Rebalance the portfolio if needed
+                        if (this.meetsSchedule(returns, this.rebalance_schedule.toLowerCase())) {
+                            C.rebalance_count++;
+                            const total = symbols.reduce((total, symbol) => total + C[symbol], 0);
+                            Object.entries(alloc).forEach(([symbol, weight]) => C[symbol] = total * weight);
+                        }
+                    }
+
+                    this.performance = {};
+                    Object.assign(this.performance, C);
+                    this.performance['returns'] = C.total - 1;
+                    this.performance['returns_minus_dca'] = C.total_minus_dca - 1;
+                    this.performance['start_date'] = returns[0].date;
+                    this.performance['end_date'] = returns.at(-1).date;
+                    this.performance['max_drawdown'] = Math.min(...returns.map(row => row.drawdown));
+
+                    this.performance['returns_normalized'] = 1;
+                    for (const row of returns) {
+                        this.performance['returns_normalized'] *= 1 + row.daily_returns;
+                    }
+                    this.performance['returns_normalized'] -= 1;
+                    this.performance['returns_annualized'] = this.performance['returns_normalized'] / (returns.length / 252.75);
+
+                    Object.keys(rolling).filter(year => rolling[year].length > 0).forEach(year => {
+                        const approx = x => Math.round(x * 1000) / 1000;
+                        const ary_returns = rolling[year].map(row => row.returns / year);
+                        const ary_drawdown = rolling[year].map(row => row.drawdown / year);
+                        const sum_returns = ary_returns.reduce((total, val) => total + val, 0);
+                        const sum_drawdown = ary_drawdown.reduce((total, val) => total + val, 0);
+
+                        const key = `${year} Year`;
+                        this.performance[key] = {};
+                        this.performance[key].ret_avg = approx(sum_returns / ary_returns.length);
+                        this.performance[key].ret_max = approx(Math.max(...ary_returns));
+                        this.performance[key].ret_min = approx(Math.min(...ary_returns));
+                        this.performance[key].drw_avg = approx(sum_drawdown / ary_drawdown.length);
+                        this.performance[key].drw_max = approx(Math.min(...ary_drawdown));
+                        this.performance[key].drw_min = approx(Math.max(...ary_drawdown));
+                    });
+
+                    this.performance = { ...this.performance };
+                    const portfolioStr = symbols.map(symbol => `${this.allocations_percent[symbol]}% ${symbol}`).join(' · ');
+
+                    const perfTable = new google.visualization.DataTable();
+                    perfTable.addColumn({ label: 'Date', type: 'date' });
+                    symbols.forEach(symbol => perfTable.addColumn({ label: symbol, type: 'number' }));
+                    perfTable.addRows(returns.map(row => ['date'].concat(symbols).map(symbol => row[symbol])));
+
+                    const drawdownTable = new google.visualization.DataTable();
+                    drawdownTable.addColumn({ label: 'Date', type: 'date' });
+                    drawdownTable.addColumn({ label: 'Drawdown', type: 'number' });
+                    drawdownTable.addRows(returns.map(row => [row.date, row.drawdown]));
+
+                    const perfElem = rootElement.querySelector('#perf-chart-container');
+                    new google.visualization.AreaChart(perfElem).draw(perfTable, Object.assign({}, GOOGLE_CHARTS_CONFIG, {
+                        title: `${portfolioStr} Performance`,
+                        curveType: 'function',
+                        isStacked: true,
+                        focusTarget: 'category',
+                        colors: null,
+                        hAxis: { ...GOOGLE_CHARTS_CONFIG.hAxis, format: 'MM/yyyy', gridlines: { count: 50 } },
+                        vAxis: { ...GOOGLE_CHARTS_CONFIG.vAxis, textPosition: 'in' },
+                        interpolateNulls: true,
+                        chartArea: { ...GOOGLE_CHARTS_CONFIG.chartArea, left: 0 },
+
+                    }));
+
+                    const drawdownElem = rootElement.querySelector('#drawdown-chart-container');
+                    new google.visualization.AreaChart(drawdownElem).draw(drawdownTable, Object.assign({}, GOOGLE_CHARTS_CONFIG, {
+                        title: `${portfolioStr} Drawdown`,
+                        curveType: 'function',
+                        focusTarget: 'category',
+                        colors: ['red'],
+                        hAxis: { ...GOOGLE_CHARTS_CONFIG.hAxis, format: 'MM/yyyy', gridlines: { count: 50 } },
+                        vAxis: { ...GOOGLE_CHARTS_CONFIG.vAxis, textPosition: 'in', viewWindow: { max: 0, min: -1 } },
+                        interpolateNulls: true,
+                        chartArea: { ...GOOGLE_CHARTS_CONFIG.chartArea, left: 0 },
+                    }));
+
+                    // Hide loading spinners
+                    perfElem.style.backgroundImage = 'none';
+                }
+            }
+        });
+
+        // Load data from URL query parameters into the view model
+        const data = DataHelper.getQueryData(window.location);
+
+        // Process the target allocations from query parameters
+        data.allocations_percent = data.target_allocations.split(',').reduce((agg, keyval) => {
+            const [key, val] = keyval.split(':', 2);
+            return Object.assign(agg, { [key]: parseInt(val) || 0 });
+        }, {});
+        Object.assign(app, data);
+
+        // Fill empty allocations with zero
+        app.symbols.forEach(symbol => app.allocations_percent[symbol] = app.allocations_percent[symbol] || 0);
+
+        // Load data from remote JSON file
+        const urlBase = 'https://finmango.github.io/portfolio-simulator';
+        app.daily_returns = csv2json(`${urlBase}/daily-returns.csv`);
+        app.daily_returns_reinvested = csv2json(`${urlBase}/daily-returns-with-dividends-reinvested.csv`);
+
+        // Ask VueJS to reload anytime any of the data changes
+        Object.keys(data).concat(['dividend_reinvestment'])
+            .forEach(key => app.$watch(key, function () { this.update() }, { deep: true }));
+
+        // Make sure load is triggered even if we didn't pass any data
+        app.update();
+    </script>
+</div>

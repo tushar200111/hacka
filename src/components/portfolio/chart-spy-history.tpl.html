@@ -1,0 +1,51 @@
+<div>
+    <!-- Import CSV parser -->
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+
+    <small class="centered">S&P 500</small>
+    <div id="spy-history-chart" class="chart-container"></div>
+
+    <script async>
+        (async function () {
+            // Need to wait for VueJS to render components. See:
+            // https://github.com/vuejs/vue/issues/9200
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            // Load data
+            const urlBase = 'https://finmango.github.io/portfolio-simulator';
+            const P = await csv2json(`${urlBase}/prices.csv`);
+
+            // Compute drawdown
+            const prices = P
+                .filter(row => !isNaN(row.SPY))
+                .map(row => ({ 'Date': new Date(row.Date), 'X': row.SPY }));
+
+            // Create DataTable
+            await google.charts.load('current', { packages: ['corechart'] });
+            const table = new google.visualization.DataTable();
+            table.addColumn({ label: 'Date', type: 'date' });
+            table.addColumn({ label: 'S&P 500', type: 'number' });
+            table.addRows(prices.map(row => [row['Date'], row['X']]));
+
+            // Wait for element to become visible
+            const chartContainer = document.querySelector('#spy-history-chart');
+            await new Promise(resolve => new IntersectionObserver(
+                entries => entries.some(x => x.isIntersecting) ? resolve() : void (0)).observe(chartContainer));
+
+            // Render chart
+            new google.visualization.AreaChart(chartContainer).draw(table, {
+                ...GOOGLE_CHARTS_CONFIG,
+                curveType: 'function',
+                focusTarget: 'category',
+                colors: null,
+                hAxis: { ...GOOGLE_CHARTS_CONFIG.hAxis, format: 'yyyy', gridlines: { count: 50 } },
+                vAxis: { ...GOOGLE_CHARTS_CONFIG.vAxis, textPosition: 'in' },
+                interpolateNulls: true,
+                chartArea: { ...GOOGLE_CHARTS_CONFIG.chartArea, top: 0, left: 0 },
+            });
+
+            // Hide loading spinners
+            chartContainer.style.backgroundImage = 'none';
+        })();
+    </script>
+</div>

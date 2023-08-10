@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<!-- HTML head -->
+<script data-include src="../../../components/head.tpl.html"
+    data-vars='{"name": "{{portfolio-name}}", "description": "{{portfolio-description}}"}'></script>
+
+<body>
+    <!-- Main element -->
+    <main class="single-column-wide" style="margin-top: auto; margin-bottom: auto;">
+
+        <!-- Survey elements in the order they will be displayed -->
+        <div id="survey-root" style="padding-top: 128px">
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/portfolio/portfolio-building.tpl.html"></script>
+            </div>
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/portfolio/start-end-dates.tpl.html"></script>
+            </div>
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/portfolio/asset-allocation.tpl.html"></script>
+            </div>
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/portfolio/rebalance-strategy.tpl.html"></script>
+            </div>
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/portfolio/dollar-cost-average.tpl.html"></script>
+            </div>
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/portfolio/investment-risks.tpl.html"></script>
+            </div>
+
+        </div>
+
+        <!-- Navigation element including reference to URL to forward the user after survey -->
+        <script src="../../../components/survey/navigation.tpl.html" data-include
+            data-vars='{"next-url": "{{wwwroot}}/view/portfolio/result/", "survey-root": "survey-root"}'></script>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,60 @@
+<div>
+    <!-- Import CSV parser -->
+    <script src="https://unpkg.com/papaparse@latest/papaparse.min.js"></script>
+
+    <small class="centered">Compounding Effect of Dividend Reinvestment</small>
+    <div id="dividends-comparison-chart" class="chart-container"></div>
+
+    <script async>
+        (async function () {
+            // Need to wait for VueJS to render components. See:
+            // https://github.com/vuejs/vue/issues/9200
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+            // Load data
+            const urlBase = 'https://finmango.github.io/portfolio-simulator';
+            const D = await csv2json(`${urlBase}/daily-returns.csv`);
+            const R = await csv2json(`${urlBase}/daily-returns-with-dividends-reinvested.csv`);
+
+            // Compute returns
+            const C = { D: 1, R: 1 };
+            const returns = [Object.assign({}, C)];
+            for (let i = 0; i < Math.min(D.length, R.length); i++) {
+                if (isNaN(D[i].SPY) || isNaN(R[i].SPY)) continue;
+                C.D = C.D * (1 + D[i].SPY);
+                C.R = C.R * (1 + R[i].SPY);
+                returns.push({ 'Date': new Date(D[i].Date), 'D': C.D, 'R': C.R });
+            }
+
+            // Create DataTable
+            await google.charts.load('current', { packages: ['corechart'] });
+            const table = new google.visualization.DataTable();
+            table.addColumn({ label: 'Date', type: 'date' });
+            table.addColumn({ label: 'SPY', type: 'number' });
+            table.addColumn({ label: 'SPY with Dividends Reinvested', type: 'number' });
+            table.addRows(returns.map(row => [row['Date'], row['D'], row['R']]));
+
+            // Wait for element to become visible
+            const chartContainer = document.querySelector('#dividends-comparison-chart');
+            await new Promise(resolve => new IntersectionObserver(
+                entries => entries.some(x => x.isIntersecting) ? resolve() : void (0)).observe(chartContainer));
+
+            // Render chart
+            new google.visualization.LineChart(chartContainer).draw(table, {
+                ...GOOGLE_CHARTS_CONFIG,
+                // title: `Dividend Reinvestment Comparison`,
+                curveType: 'function',
+                focusTarget: 'category',
+                colors: null,
+                legend: { ...GOOGLE_CHARTS_CONFIG.legend, position: 'in' },
+                hAxis: { ...GOOGLE_CHARTS_CONFIG.hAxis, format: 'MM/yyyy', gridlines: { count: 50 } },
+                vAxis: { ...GOOGLE_CHARTS_CONFIG.vAxis, textPosition: 'in' },
+                interpolateNulls: true,
+                chartArea: { ...GOOGLE_CHARTS_CONFIG.chartArea, left: 0 },
+            });
+
+            // Hide loading spinners
+            chartContainer.style.backgroundImage = 'none';
+        })();
+    </script>
+</div>

@@ -1,0 +1,20 @@
+<div>
+    <label for="dca_schedule">
+        Dollar-Cost Averaging Schedule
+        <small>How often to simulate cash contributions to your portfolio.</small>
+    </label>
+    <select id="dca_schedule" v-model="dca_schedule">
+        <option value="never" selected>Never</option>
+        <option value="yearly">Yearly</option>
+        <option value="quarterly">Quarterly</option>
+        <option value="monthly">Monthly</option>
+    </select>
+</div>
+<div v-show="dca_schedule !== 'never'">
+    <label for="dca_amount">Dollar-Cost Averaging Amount</label>
+    <br />
+    <small>
+        Amount of dollars being added to your portfolio at regular intervals.
+    </small>
+    <input id="dca_amount" v-model="dca_amount" type="number" pattern="/d+" min="0" value="0" />
+</div>

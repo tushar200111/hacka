@@ -1,0 +1,100 @@
+<head>
+    <!-- HTML metadata -->
+    <meta charset="UTF-8" />
+    <title>{{name}}</title>
+    <meta name="description" content="{{description}}" />
+    <link rel="icon" type="image/ico" href="{{wwwroot}}/static/favicon.ico" />
+
+    <!-- Social media preview images -->
+    <meta property="og:image" content="{{url-web}}/static/logo-512.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="256">
+
+    <!-- Add to homescreen for Safari on iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="{{name}}" />
+
+    <!-- Homescreen icons -->
+    <link rel="apple-touch-icon" href="{{wwwroot}}/static/favicon.ico" />
+
+    <!-- Capabilities-related metadata -->
+    <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1" />
+
+    <!-- VueJS -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <!-- Comment the previous line and uncomment this one to enable debug more for VueJS -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script> -->
+
+    <!-- Google Charts -->
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <!-- MomentJS -->
+    <script type="text/javascript" src="{{wwwroot}}/third_party/moment/min/moment.min.js"></script>
+
+    <!-- Custom styles and fonts -->
+    <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/goldman-sans">
+    <link rel="stylesheet" href="{{wwwroot}}/third_party/picnic/picnic.min.css" />
+    <link rel="stylesheet" href="{{wwwroot}}/static/styles.min.css" />
+
+    <!-- Polyfills, custom functions and constants -->
+    <script type="text/javascript" src="{{wwwroot}}/static/formatter.min.js"></script>
+    <script type="text/javascript" src="{{wwwroot}}/static/data-helper.min.js"></script>
+    <script type="text/javascript" src="{{wwwroot}}/static/polyfills.min.js"></script>
+    <script type="text/javascript">
+
+        // Define constants and default options
+        const DEFAULT_OPTIONS = {
+            font: 'Goldman Sans',
+            chart_legend_position: 'none',
+            chart_padding_top: 24,
+            chart_padding_left: 64,
+            chart_padding_right: 0,
+            chart_padding_bottom: 48,
+        }
+
+        // Read debugging options from session storage to allow for runtime overriding of values
+        CURRENT_OPTIONS = Object.keys(DEFAULT_OPTIONS).reduce((acc, key) =>
+            Object.assign(acc, { [key]: sessionStorage.getItem(key) || DEFAULT_OPTIONS[key] }), {});
+
+        // Create a default configuration for Google Charts
+        GOOGLE_CHARTS_CONFIG = window.GOOGLE_CHARTS_CONFIG || {
+            theme: 'material',
+            fontName: CURRENT_OPTIONS.font,
+            titleTextStyle: { fontName: CURRENT_OPTIONS.font },
+            backgroundColor: '{{theme-background}}',
+            colors: ['{{theme-primary}}'],
+            legend: {
+                position: CURRENT_OPTIONS.chart_legend_position,
+            },
+            chartArea: {
+                width: '100%',
+                height: '100%',
+                top: parseInt(CURRENT_OPTIONS.chart_padding_top || 24),
+                left: parseInt(CURRENT_OPTIONS.chart_padding_left || 64),
+                right: parseInt(CURRENT_OPTIONS.chart_padding_right || 0),
+                bottom: parseInt(CURRENT_OPTIONS.chart_padding_bottom || 48),
+                backgroundColor: '{{theme-background}}',
+            },
+            titlePosition: 'in',
+            axisTitlesPosition: 'in',
+            hAxis: {
+                textPosition: 'bottom',
+                textStyle: { fontName: CURRENT_OPTIONS.font },
+            },
+            vAxis: {
+                textPosition: 'out',
+                viewWindow: { min: 0 },
+                textStyle: { fontName: CURRENT_OPTIONS.font },
+            },
+            height: parseInt(CURRENT_OPTIONS.chart_height || 300),
+        }
+
+    </script>
+
+</head>
+
+
+<!-- Load analytics at the end of the head element before the body -->
+<script src="./analytics.tpl.html" data-include></script>

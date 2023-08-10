@@ -1,0 +1,60 @@
+<div>
+    <div id="rule-of-72-result">
+        <h2 class="centered" style="text-transform: uppercase; font-size: large;">
+            You started with <b>{{ Formatter.price(investments_net) }}</b>
+        </h2>
+
+        <h2 class="centered" style="text-transform: uppercase; font-size: xx-large;">
+            In <span class="animated">{{ Formatter.years(years) }}</span> Years, You'll Have
+        </h2>
+
+        <h2 class="centered animated" style="text-transform: uppercase; font-size: 64px;">
+            {{ Formatter.price(wealth) }}
+        </h2>
+
+        <div class="navigation-container animated survey-screen-visible" id="survey-navigation">
+            <div class="centered flex one">
+                <button @click="next()">NEXT</button>
+                <button onclick="window.location.reload()">START OVER</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const roolElement = document.currentScript.parentElement;
+
+        (async function () {
+            // Load data from URL query parameters into the view model
+            const data = DataHelper.getQueryData(window.location);
+
+
+            // Mount VueJS to the root element
+            const app = new Vue({
+                el: '#rule-of-72-result',
+                data: Object.assign({
+                    // Initialize data with sensible defaults
+                    wealth: Number.NaN,
+                    investments_net: 5_000,
+                    investments_rate: 8,
+                    years: 0,
+                    Formatter: Formatter,
+                }, data),
+                computed: {
+                    doubling_time: function () {
+                        return 72 / Number(this.investments_rate);
+                    },
+                },
+                methods: {
+                    next: function () {
+                        this.years += this.doubling_time;
+                        this.wealth *= 2;
+                    }
+                }
+            });
+
+            // Make sure the initial wealth is equal to the net investments]
+            app.wealth = app.investments_net;
+        })();
+    </script>
+
+</div>

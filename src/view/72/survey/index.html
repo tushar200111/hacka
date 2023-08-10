@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<!-- HTML head -->
+<script data-include src="../../../components/head.tpl.html"
+    data-vars='{"name": "{{72-name}}", "description": "{{72-description}}"}'></script>
+
+<body>
+    <!-- Page header-->
+    <script data-include src="../../../components/page-header.tpl.html"></script>
+
+    <!-- Main element -->
+    <main class="single-column-wide" style="margin-top: auto; margin-bottom: auto;">
+
+        <!-- Survey elements in the order they will be displayed -->
+        <div id="survey-root">
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/72/what-is-rule-of-72.html"></script>
+            </div>
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/survey/how-much-invested.tpl.html"></script>
+            </div>
+
+            <div class="survey-screen animated">
+                <script data-include src="../../../components/72/doubling-time.tpl.html"></script>
+            </div>
+        </div>
+
+        <!-- Generous space between survey blocks and the navigation buttons -->
+        <div class="spacer"></div>
+        <div class="spacer"></div>
+
+        <!-- Navigation element including reference to URL to forward the user after survey -->
+        <script src="../../../components/survey/navigation.tpl.html" data-include
+            data-vars='{"next-url": "{{wwwroot}}/view/72/result/", "survey-root": "survey-root"}'></script>
+    </main>
+</body>
+
+</html>

@@ -1,0 +1,54 @@
+<h2 class="survey-header">
+    Asset Allocation
+</h2>
+
+<div class="spacer"></div>
+
+<div class="survey-block centered">
+    <label for="target_allocations">
+        Asset Allocation
+        <br />
+        <small>
+            Proportion of your portfolio allocated to each asset class from the three-fund portfolio.
+        </small>
+    </label>
+    <select id="target_allocations" v-model="target_allocations">
+        <option value="SPY:100" selected>100% U.S. Stocks</option>
+        <option value="VTI:80,BND:20">80% U.S. Stocks and 20% U.S. Bonds</option>
+        <option value="VTI:60,VXUS:20,BND:20">60% U.S. Stocks, 20% International Stocks and 20% U.S. Bonds</option>
+        <option value="VTI:40,VXUS:40,BND:20">40% U.S. Stocks, 40% International Stocks and 20% U.S. Bonds</option>
+    </select>
+</div>
+
+<div class="spacer"></div>
+
+<details>
+    <summary class='centered' style="display: list-item">Learn more about asset allocation</summary>
+
+    <p class="survey-block">
+        Of course, there are sometimes long periods of economic stagnation or even contraction. Instead
+        of trying to <b>time the market</b>, you can add different types of assets to your portfolio
+        that will behave differently during those times.
+    </p>
+
+    <p class="survey-block">
+        A very common strategy for U.S. investors is the <b>three-fund portfolio</b>. An investor
+        following this strategy simply selects a combination of funds that provide exposure to three
+        main categories: <b>U.S. Bonds</b>, <b>U.S. Stocks</b> and <b>International Stocks</b>.
+    </p>
+
+    <p class="survey-block">
+        Stocks are considered more risky, but they also yield a potentially higher reward. More
+        diversified stocks (i.e. international as opposed to U.S. only) tend to be less volatile
+        than their more concentrated counterparts. Lastly, bonds are considered extremely stable but
+        in many cases their <b>return-on-investment</b> can be lower than the <b>inflation rate</b>.
+    </p>
+
+    <p class="survey-block">
+        Select your desired <b>asset allocation</b> based on your investment objectives. A larger
+        proportion of stocks is riskier, but likely to outperform other choices in the long term
+        (over 10 years).
+    </p>
+
+    <script data-include src="../survey/scroll-up-button.tpl.html"></script>
+</details>

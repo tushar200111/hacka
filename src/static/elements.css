@@ -1,0 +1,94 @@
+header * {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    padding: 0.5em 0.2em;
+    padding-bottom: 0.2em;
+}
+
+.single-column {
+    width: 90%;
+    margin: 0 auto;
+    max-width: 1080px;
+}
+
+input#location-selector {
+    font-size: large;
+    padding-top: .2em;
+    padding-bottom: .2em;
+}
+
+header h1 {
+    font-size: 48px;
+    padding-top: 0.8em;
+}
+
+
+/* Fix for range selector */
+input[type=range] {
+    width: calc(100% - 1.2em);
+}
+
+summary {
+    cursor: pointer;
+    display: list-item;
+    font-size: large;
+}
+
+label small {
+    display: block;
+}
+
+.chart-container {
+    width: 100%;
+    min-height: 300px;
+    background-image: url('loading.gif');
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.survey-block {
+    text-align: justify;
+    width: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    flex: 1;
+}
+
+.survey-header {
+    text-transform: uppercase;
+    font-size: x-large;
+    text-align: center;
+    width: auto;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    flex: 1;
+    padding: 0;
+}
+
+.survey-block img {
+    width: 100%;
+    height: auto;
+}
+
+.animated {
+    transition: all 500ms ease-in-out;
+}
+
+.survey-screen,
+.navigation-container {
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
+    max-width: 600px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.survey-screen-visible {
+    height: auto;
+    opacity: 1;
+    overflow: initial;
+}
